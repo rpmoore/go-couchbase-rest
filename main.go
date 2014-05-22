@@ -22,30 +22,28 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Homepage")
 }
 
-func UsersHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "POST":
-		user := User{}
-		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(&user)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		added, err := userBucket.Add(user.Id, 0, user)
-		if !added {
-			http.Error(w, "User with that id already exists", http.StatusConflict)
-			return
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusCreated)
-		break
-	default:
-		fmt.Fprint(w, "Users Page")
+func NewUserHandler(w http.ResponseWriter, r *http.Request) {
+	user := User{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
+	added, err := userBucket.Add(user.Id, 0, user)
+	if !added {
+		http.Error(w, "User with that id already exists", http.StatusConflict)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func UsersHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Users Page")
 }
 
 func UserHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +87,8 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc("/users", UsersHandler)
+	r.HandleFunc("/users", UsersHandler).Methods("GET")
+	r.HandleFunc("/users", NewUserHandler).Methods("POST")
 	r.HandleFunc("/users/{id}", UserHandler)
 
 	http.Handle("/", r)
