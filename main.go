@@ -23,7 +23,29 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UsersHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Users Page")
+	switch r.Method {
+	case "POST":
+		user := User{}
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		added, err := userBucket.Add(user.Id, 0, user)
+		if !added {
+			http.Error(w, "User with that id already exists", http.StatusConflict)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		break
+	default:
+		fmt.Fprint(w, "Users Page")
+	}
 }
 
 func UserHandler(w http.ResponseWriter, r *http.Request) {
